@@ -107,7 +107,7 @@ public class WARCTest extends TestCase {
                 assertEquals("Date not equal", "Wed May 22 12:27:40 CEST 2013", currDate.toString());
                 assertEquals("HTTPrc not equal", -1, currHTTPrc);
                 assertEquals("Record length not equal", 374, currLength);
-                assertEquals("Content seems not to be correct", 202, myContentStringIndex);
+                assertEquals("Content mismatch", 202, myContentStringIndex);
             }
             start++;
         }
@@ -117,7 +117,6 @@ public class WARCTest extends TestCase {
         StringWriter myWriter = new StringWriter();
         IOUtils.copy(contents, myWriter, null);
         String out = myWriter.toString();
-        System.out.print("CONTENT: " + out);  //uncomment this line to print the inputsream (e.g. to find new "myContentString"
         return out;
     }
 }
