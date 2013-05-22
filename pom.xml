@@ -34,7 +34,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>eu.scape_project.tb.wc.archd.hd.HDApp</mainClass>
+                            <mainClass>eu.scape_project.tb.wc.archd.hadoop.HadoopArcReaderJob</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -76,6 +76,11 @@
             <groupId>org.apache.mahout.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
             <version>0.20.1</version>
+        </dependency>
+         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.2</version>
         </dependency>
         <dependency>
             <groupId>commons-logging</groupId>

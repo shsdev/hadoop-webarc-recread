@@ -1,13 +1,29 @@
 hadoop-webarc-recread
 =====================
 
+Introduction
+------------
+
 Hadoop web archive (W/ARC) record reader
 
-This experimental project is mainly a custom Hadoop RecordReader for native ARC/WARC files. It is based on the Hadoop 0.20 API (avoids deprecated “mapred” packages) and its purpose is to run experimental test with ARC containers on a Hadoop cluster. Test classes are included.
+This project contains custom Hadoop RecordReader classes for native ARC/WARC 
+files based on the Hadoop 0.20 API.
 
-The project additionally includes a sample map / reduce program for web archive file identification using the Apache Tika™ 1.0 API. Input is a HDFS directory path containing the test ARC files. Output of the map / reduce  program is a mime time distribution list of the analyzed input (all identified MIME types inside each ARC plus the occurrence of each type in all ARCs).
+The project includes a sample MapReduce application which reads ARC files from
+a given HDFS path and returns a mime type distribution. 
 
+Install
+-------
 
-Usage of the sample program:
-        
-hadoop jar ./tb-wc-hd-archd.jar -D mapred.reduce.tasks=1 [DirToBeScanned] [DirOutput]
+    cd hadoop-webarc-recread
+    mvn install 
+
+Usage
+-------
+
+    hadoop jar
+      target/hadoop-webarc-recread-1.0-SNAPSHOT-jar-with-dependencies.jar -n
+      job_name -d /path/to/hdfs/input/directory -n hadoop_job_name
+    -d,--dir <arg>    HDFS directory web archive container files.
+    -n,--name <arg>   Job name.
+

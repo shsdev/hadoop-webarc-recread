@@ -14,10 +14,8 @@
  *  limitations under the License.
  *  under the License.
  */
+package eu.scape_project.tb.wc.archd.hadoop;
 
-package eu.scape_project.tb.wc.archd.hd;
-
-import eu.scape_project.tb.wc.archd.tools.App;
 import eu.scape_project.tb.wc.archd.hdreader.ArcInputFormat;
 import eu.scape_project.tb.wc.archd.hdreader.ArcRecord;
 import java.io.IOException;
@@ -25,6 +23,9 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.PosixParser;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -37,38 +38,55 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.tika.detect.DefaultDetector;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.mime.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author onbram
  */
-public class HDApp extends Configured implements Tool {
+public class HadoopArcReaderJob extends Configured implements Tool {
+
+    // Logger instance
+    private static Logger logger = LoggerFactory.getLogger(HadoopArcReaderJob.class.getName());
 
     public static void main(String[] args) throws Exception {
-        System.out.println("HADOOP ARC reader test application.");
+
+        logger.info("HADOOP ARC reader test hadoop job.");
         long startTime = System.currentTimeMillis();
-        
-        int res = ToolRunner.run(new Configuration(), new HDApp(), args);
-        
-        long elapsedTime = System.currentTimeMillis()-startTime;
-        System.out.println("Processing time (sec): " + elapsedTime/1000F);
-        
+
+        int res = ToolRunner.run(new Configuration(), new HadoopArcReaderJob(), args);
+
+        long elapsedTime = System.currentTimeMillis() - startTime;
+        logger.info("Processing time (sec): " + elapsedTime / 1000F);
+
         System.exit(res);
     }
 
+    @Override
     public int run(String[] args) throws Exception {
 
-        Configuration conf = getConf();
-        Job job = new Job(conf);
-
-        for (int i = 0; i < args.length; i++) {
-            System.out.println("Arg" + i + ": " + args[i]);
+        Configuration conf = new Configuration();
+        GenericOptionsParser gop = new GenericOptionsParser(conf, args);
+        HadoopJobCliConfig pc = new HadoopJobCliConfig();
+        CommandLineParser cmdParser = new PosixParser();
+        CommandLine cmd = cmdParser.parse(HadoopJobOptions.OPTIONS, gop.getRemainingArgs());
+        if ((args.length == 0) || (cmd.hasOption(HadoopJobOptions.HELP_OPT))) {
+            HadoopJobOptions.exit("Usage", 0);
+        } else {
+            HadoopJobOptions.initOptions(cmd, pc);
         }
+        String dir = pc.getDirStr();
+
+        String name = pc.getHadoopJobName();
+        if (name == null || name.equals("")) {
+            name = "webarc_reader"; // default job name
+        }
+
+        Job job = new Job(conf);
 
         //**********************************************************
         // for debugging in local mode
@@ -77,14 +95,14 @@ public class HDApp extends Configured implements Tool {
         // job.getConfiguration().set("fs.default.name", "local");
         //**********************************************************
 
-        FileInputFormat.setInputPaths(job, new Path(args[0]));
-        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        FileInputFormat.setInputPaths(job, new Path(dir));
+        String outpath = "output/" + System.currentTimeMillis() + "wcr";
+        logger.info("Output directory: " + outpath);
+        FileOutputFormat.setOutputPath(job, new Path(outpath));
 
-        job.setJarByClass(App.class);
-        
-        //*** Allow setting jobName from command line. (-D mapred.job.name='Override the JobName')
-        String myJobName = job.getJobName(); // check if the JobName has been set from outside
-        if(myJobName.equals("")) job.setJobName("HADOOP ARC reader test application"); // only set if it has not been set from the command line (avoids override)
+        job.setJarByClass(HadoopArcReaderJob.class);
+
+        job.setJobName(name);
 
         //*** Set interface data types
         // We are using LONG because this value can become very large on huge archives.
@@ -100,15 +118,12 @@ public class HDApp extends Configured implements Tool {
         job.setCombinerClass(Reduce.class);
         job.setReducerClass(Reduce.class);
 
-
         //*** Set the MAP output compression
         //job.getConfiguration().set("mapred.compress.map.output", "true");
-
 
         //*** Set input / output format
         job.setInputFormatClass(ArcInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
-
 
         //*** Start the job and wait for it
         boolean success = job.waitForCompletion(true);
@@ -121,42 +136,10 @@ public class HDApp extends Configured implements Tool {
     public static class Map
             extends Mapper<Text, ArcRecord, Text, LongWritable> {
 
-        String recMimeType;
-        String recType;
-        String recURL;
-        Date recDate;
-        int recLength;
-        int recHTTPret;
-        InputStream recContent;
-        String myTIKAout = "";
-        Metadata met = new Metadata();
-        LongWritable one = new LongWritable(1);
-        DefaultDetector detector = new DefaultDetector();
-
         @Override
         public void map(Text key, ArcRecord value, Context context) throws IOException, InterruptedException {
-
-            //            recMimeType = value.getMimeType();
-            //            recType = value.getType();
-            //            recURL = value.getUrl();
-            //            recDate = value.getDate();
-            recLength = value.getLength();
-            // recHTTPret = value.getHttpReturnCode();
-
-            //excude 0 size files. Otherwise they will falsify statistics.
-            // 0byte files with jpg extension => jpg detect
-            // 0byte files with jpg extension => txt as http-get stored type
-
-            if (recLength > 0) {
-                recContent = value.getContents();
-                met.set(Metadata.RESOURCE_NAME_KEY, key.toString());
-                MediaType mediaType = detector.detect(recContent, met);
-                myTIKAout = mediaType.toString().intern();                                
-            } else {
-                myTIKAout = "SIZE=0";
-            }
-
-            context.write(new Text(myTIKAout), one);
+            String recMimeType = value.getMimeType();
+            context.write(new Text(recMimeType), new LongWritable(1));
 
         }
     }
@@ -172,13 +155,11 @@ public class HDApp extends Configured implements Tool {
         @Override
         public void reduce(Text key, Iterable<LongWritable> values, Context context)
                 throws IOException, InterruptedException {
-
             sum = 0;
             for (LongWritable value : values) {
                 sum += value.get();
             }
             context.write(key, new LongWritable(sum));
-
         }
     }
 }

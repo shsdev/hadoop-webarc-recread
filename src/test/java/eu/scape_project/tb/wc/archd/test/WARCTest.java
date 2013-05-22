@@ -14,12 +14,12 @@
  *  limitations under the License.
  *  under the License.
  */
-
 package eu.scape_project.tb.wc.archd.test;
 
 import eu.scape_project.tb.wc.archd.hdreader.ArcInputFormat;
 import eu.scape_project.tb.wc.archd.hdreader.ArcRecord;
 import java.io.*;
+import java.net.URL;
 import java.util.Date;
 import junit.framework.TestCase;
 import org.apache.commons.io.IOUtils;
@@ -47,28 +47,17 @@ public class WARCTest extends TestCase {
     protected void setUp() throws Exception {
 
         super.setUp();
-        
-        InputStream is = ARCTest.class.getResourceAsStream("ONBdevSample.warc.gz");
+
+        InputStream is = ARCTest.class.getResourceAsStream("IAH-20080430204825-00000-blackbook.warc.gz");
         File file = eu.scape_project.tb.wc.archd.tools.FileUtils.getTmpFile("archd", "warc.gz");
-        OutputStream out = new FileOutputStream(file);
-        int read = 0;
-	byte[] bytes = new byte[1024];
- 
-	while ((read = is.read(bytes)) != -1) {
-		out.write(bytes, 0, read);
-	}
- 
-	is.close();
-	out.flush();
-	out.close();
-        
-        
+        FileOutputStream fos = new FileOutputStream(file);
+        org.apache.commons.io.IOUtils.copy(is, fos);
+        fos.flush();
+        fos.close();
         Configuration conf = new Configuration();
         Job job = new Job(conf);
-
-
         split = new FileSplit(new Path(file.getAbsolutePath()), 0, file.length(), null);
-        
+
         myArcF = new ArcInputFormat();
         tac = new TaskAttemptContext(conf, new TaskAttemptID());
     }
@@ -88,7 +77,7 @@ public class WARCTest extends TestCase {
         while (recordReader.nextKeyValue()) {
             Text currKey = recordReader.getCurrentKey();
             ArcRecord currValue = recordReader.getCurrentValue();
-            
+
             String currMIMEType = currValue.getMimeType();
             String currType = currValue.getType();
             String currURL = currValue.getUrl();
@@ -99,74 +88,54 @@ public class WARCTest extends TestCase {
             Date currDate = currValue.getDate();
             int currHTTPrc = currValue.getHttpReturnCode();
             int currLength = currValue.getLength();
-            
+
             System.out.println("KEY " + start + ": " + currKey + " MIME Type: " + currMIMEType + " Type: " + currType + " URL: " + currURL + " Date: " + currDate.toString() + " HTTPrc: " + currHTTPrc + " Length: " + currLength);
-                
+
             // check example record 1 (first one and the header of the WARC file)
             if (start == 1) {
                 //"myContentString" is arbitrary sting snipped of which we know that it exists in the content stream and of which we know the position in the stream.
                 //We will search for the string int the content we read and compare it to the values we know.                
                 currContent = content2String(currStream);
-                myContentString = "isPartOf: scapewarcgz";
+                myContentString = "isPartOf: archive.org-shallow";
                 myContentStringIndex = currContent.indexOf(myContentString);
                 //System.out.println("Search for: " + myContentString + "=> Index is: " + myContentStringIndex);
-                
-                assertEquals("ID not equal","<urn:uuid:ebb11a78-e0c4-4396-8c62-b08581b0ef28>", currKey.toString());
-                assertEquals("MIME Type not equal","application/warc-fields", currMIMEType);    
-                assertEquals("Response type not equal","warcinfo", currType);
-                assertEquals("URL not equal",null, currURL);
-                assertEquals("Date not equal","Tue Jun 19 07:06:45 CEST 2012", currDate.toString());
-                assertEquals("HTTPrc not equal",-1, currHTTPrc);
-                assertEquals("Record length not equal",457, currLength);
-                assertEquals("Content seems not to be correct",205, myContentStringIndex);
+
+                assertEquals("ID not equal", "<urn:uuid:35f02b38-eb19-4f0d-86e4-bfe95815069c>", currKey.toString());
+                assertEquals("MIME Type not equal", "application/warc-fields", currMIMEType);
+                assertEquals("Response type not equal", "warcinfo", currType);
+                assertEquals("URL not equal", null, currURL);
+                assertEquals("Date not equal", "Wed Apr 30 20:48:25 CEST 2008", currDate.toString());
+                assertEquals("HTTPrc not equal", -1, currHTTPrc);
+                assertEquals("Record length not equal", 482, currLength);
+                assertEquals("Content seems not to be correct", 210, myContentStringIndex);
             }
             // check example record 195 (in the middle)
             if (start == 195) {
                 //"myContentString" is arbitrary sting snipped of which we know that it exists in the content stream and of which we know the position in the stream.
                 //We will search for the string int the content we read and compare it to the values we know.   
                 currContent = content2String(currStream);
-                myContentString = "56789:CDEFGH";
+                myContentString = "20080430204912";
                 myContentStringIndex = currContent.indexOf(myContentString);
                 //System.out.println("Search for: " + myContentString + "=> Index is: " + myContentStringIndex);
 
-                assertEquals("<urn:uuid:9e0fe029-12e9-43d0-acbe-4cb83c2c766c>", currKey.toString());
-                assertEquals("MIME Type not equal","image/jpeg", currMIMEType);
-                assertEquals("Response type not equal","response", currType);
-                assertEquals("URL not equal","http://www.onb.ac.at/images/Musiksammlung/exlibris.jpg", currURL);
-                assertEquals("Date Type not equal","Tue Jun 19 07:09:09 CEST 2012", currDate.toString());
-                assertEquals("HTTPrc not equal",200, currHTTPrc);
-                assertEquals("Length Type not equal",18538, currLength);
-                assertEquals("Content seems not to be correct",282, myContentStringIndex);
-            } 
-            // check example record 379 (last REQUEST record)
-            if (start == 379) {
-                //"myContentString" is arbitrary sting snipped of which we know that it exists in the content stream and of which we know the position in the stream.
-                //We will search for the string int the content we read and compare it to the values we know.   
-                currContent = content2String(currStream);
-                myContentString = "";
-                myContentStringIndex = currContent.indexOf(myContentString);
-                //System.out.println("Search for: " + myContentString + "=> Index is: " + myContentStringIndex);
-
-                assertEquals("<urn:uuid:3b9dca99-481c-449a-8b4a-d3022d4d23de>", currKey.toString());
-                assertEquals("MIME Type not equal","application/http; msgtype=request", currMIMEType);
-                assertEquals("Response type not equal","request", currType);
-                assertEquals("URL not equal","http://www.onb.ac.at/images/kartensammlung/globenmuseum1_indexA.jpg", currURL);
-                assertEquals("Date Type not equal","Tue Jun 19 07:11:21 CEST 2012", currDate.toString());
-                assertEquals("HTTPrc not equal",-1, currHTTPrc);
-                assertEquals("Length Type not equal",0, currLength);
-                assertEquals("Content seems not to be correct",0, myContentStringIndex);
-            }            
+                assertEquals("<urn:uuid:59500b0d-3c35-470b-a6bf-060d83b627dd>", currKey.toString());
+                assertEquals("MIME Type not equal", "text/dns", currMIMEType);
+                assertEquals("Response type not equal", "response", currType);
+                assertEquals("URL not equal", "dns:ia341007.us.archive.org", currURL);
+                assertEquals("Date Type not equal", "Wed Apr 30 20:49:12 CEST 2008", currDate.toString());
+                assertEquals("HTTPrc not equal", -1, currHTTPrc);
+                assertEquals("Length Type not equal", 64, currLength);
+                assertEquals("Content seems not to be correct", 0, myContentStringIndex);
+            }
             start++;
         }
     }
-    
-    
-    
-        private String content2String(InputStream contents) throws IOException {
+
+    private String content2String(InputStream contents) throws IOException {
         StringWriter myWriter = new StringWriter();
         IOUtils.copy(contents, myWriter, null);
         String out = myWriter.toString();
-        //System.out.print("CONTENT: " + out);  //uncomment this line to print the inputsream (e.g. to find new "myContentString"
+        System.out.print("CONTENT: " + out);  //uncomment this line to print the inputsream (e.g. to find new "myContentString"
         return out;
     }
 }
