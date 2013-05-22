@@ -48,7 +48,7 @@ public class ARCTest extends TestCase {
     protected void setUp() throws Exception {
 
         super.setUp();
-        InputStream is = ARCTest.class.getResourceAsStream("IAH-20080430204825-00000-blackbook.arc.gz");
+        InputStream is = ARCTest.class.getResourceAsStream("3-2-20130522085320-00000-prepc2.arc.gz");
         File file = eu.scape_project.tb.wc.archd.tools.FileUtils.getTmpFile("archd", "arc.gz");
         FileOutputStream fos = new FileOutputStream(file);
         org.apache.commons.io.IOUtils.copy(is, fos);
@@ -95,18 +95,18 @@ public class ARCTest extends TestCase {
                 //"myContentString" is arbitrary sting snipped of which we know that it exists in the content stream and of which we know the position in the stream.
                 //We will search for the string int the content we read and compare it to the values we know.                
                 currContent = content2String(currStream);
-                myContentString = "<dcterms:isPartOf>archive.org-shallow</dcterms:isPartOf>";
+                myContentString = "defaultgz_orderxml";
                 myContentStringIndex = currContent.indexOf(myContentString);
                 //System.out.println("Search for: " + myContentString + "=> Index is: " + myContentStringIndex);
                 
-                assertEquals("ID not equal","20080430204825/filedesc://IAH-20080430204825-00000-blackbook.arc", currKey.toString());
+                assertEquals("ID not equal","20130522085320/filedesc://3-2-20130522085320-00000-prepc2.arc", currKey.toString());
                 assertEquals("MIME Type not equal","text/plain", currMIMEType);    
                 assertEquals("Response type not equal","response", currType);
-                assertEquals("URL not equal","filedesc://IAH-20080430204825-00000-blackbook.arc", currURL);
-                assertEquals("Date not equal","Wed Apr 30 20:48:25 CEST 2008", currDate.toString());
+                assertEquals("URL not equal","filedesc://3-2-20130522085320-00000-prepc2.arc", currURL);
+                assertEquals("Date not equal","Wed May 22 08:53:20 CEST 2013", currDate.toString());
                 assertEquals("HTTPrc not equal",-1, currHTTPrc);
-                assertEquals("Record length not equal",1224, currLength);
-                assertEquals("Content seems not to be correct",523, myContentStringIndex);
+                assertEquals("Record length not equal",1190, currLength);
+                assertEquals("Content seems not to be correct",531, myContentStringIndex);
             }
             start++;
         }
