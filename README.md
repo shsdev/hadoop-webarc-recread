@@ -4,22 +4,20 @@ hadoop-webarc-recread
 Introduction
 ------------
 
-Hadoop web archive (W/ARC) record reader
-
-This project contains custom Hadoop RecordReader classes for native ARC/WARC 
-files based on the Hadoop 0.20 API.
+This project contains custom Hadoop web archive (W/ARC) container record reader 
+classes for ARC/WARC files based on the Hadoop 0.20 API.
 
 The project includes a sample MapReduce application which reads ARC files from
-a given HDFS path and returns a mime type distribution. 
+a given HDFS path and outputs a mime type distribution. 
 
-Install
--------
+Installation
+------------
 
     cd hadoop-webarc-recread
     mvn install 
 
 Usage
--------
+-----
 
 Execute hadoop job from the command line:
 
