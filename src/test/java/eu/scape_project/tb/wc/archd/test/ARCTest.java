@@ -103,7 +103,7 @@ public class ARCTest extends TestCase {
                 assertEquals("MIME Type not equal","text/plain", currMIMEType);    
                 assertEquals("Response type not equal","response", currType);
                 assertEquals("URL not equal","filedesc://3-2-20130522085320-00000-prepc2.arc", currURL);
-                assertEquals("Date not equal","Wed May 22 08:53:20 CEST 2013", currDate.toString());
+                assertTrue("Date not correct", currDate.toString().startsWith("Wed May 22 08:53:20"));
                 assertEquals("HTTPrc not equal",-1, currHTTPrc);
                 assertEquals("Record length not equal",1190, currLength);
                 assertEquals("Content seems not to be correct",531, myContentStringIndex);
