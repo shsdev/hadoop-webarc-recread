@@ -104,7 +104,7 @@ public class WARCTest extends TestCase {
                 assertEquals("MIME Type not equal", "application/warc-fields", currMIMEType);
                 assertEquals("Response type not equal", "warcinfo", currType);
                 assertEquals("URL not equal", null, currURL);
-                assertEquals("Date not equal", "Wed May 22 12:27:40 CEST 2013", currDate.toString());
+                assertTrue("Date not correct", currDate.toString().startsWith("Wed May 22 12:27:40"));
                 assertEquals("HTTPrc not equal", -1, currHTTPrc);
                 assertEquals("Record length not equal", 374, currLength);
                 assertEquals("Content mismatch", 202, myContentStringIndex);
